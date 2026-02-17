@@ -1,0 +1,11 @@
+.git/
+.env
+dist/
+dist-publish/
+docs/dist/
+docs/dist-publish/
+workspace/
+*.log
+.DS_Store
+.idea/
+.vscode/

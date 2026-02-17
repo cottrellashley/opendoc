@@ -1,0 +1,17 @@
+site:
+  name: My Site
+  author: ""
+  description: ""
+  url: ""
+
+content:
+  dir: content
+
+build:
+  output_dir: dist
+
+theme:
+  name: default
+
+nav:
+  - Home: index.md

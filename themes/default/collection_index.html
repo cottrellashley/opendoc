@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}{{ collection.label }} &mdash; {{ site.name }}{% endblock %}
+
+{% block content %}
+<section class="collection-index">
+    <header class="collection-header">
+        <h1>{{ collection.label }}</h1>
+    </header>
+
+    {% if entries %}
+
+    {# ── Timeline layout ─────────────────────────────────────────── #}
+    {% if layout == "timeline" %}
+    <div class="layout-timeline">
+        {% for entry in entries %}
+        <a href="{{ collection.url_prefix }}{{ entry.slug }}/" class="post-card">
+            <article>
+                <div class="post-card-meta">
+                    {% if entry.date %}
+                    <time datetime="{{ entry.iso_date }}">{{ entry.formatted_date }}</time>
+                    {% endif %}
+                    {% if entry.tags %}
+                    <span class="post-card-tags">
+                        {% for tag in entry.tags %}
+                        <span>{{ tag }}</span>
+                        {% endfor %}
+                    </span>
+                    {% endif %}
+                </div>
+                <h2>{{ entry.title }}</h2>
+                {% if entry.description %}
+                <p class="post-card-excerpt">{{ entry.description }}</p>
+                {% endif %}
+                <span class="post-card-read">Read more &rarr;</span>
+            </article>
+        </a>
+        {% endfor %}
+    </div>
+
+    {# ── Grid layout ─────────────────────────────────────────────── #}
+    {% elif layout == "grid" %}
+    <div class="layout-grid">
+        {% for entry in entries %}
+        <a href="{{ collection.url_prefix }}{{ entry.slug }}/" class="grid-card">
+            <article>
+                <h2 class="grid-card-title">{{ entry.title }}</h2>
+                {% if entry.description %}
+                <p class="grid-card-excerpt">{{ entry.description }}</p>
+                {% endif %}
+                <div class="grid-card-footer">
+                    {% if entry.date %}
+                    <time datetime="{{ entry.iso_date }}">{{ entry.formatted_date }}</time>
+                    {% endif %}
+                    {% if entry.tags %}
+                    <span class="grid-card-tags">
+                        {% for tag in entry.tags %}
+                        <span class="grid-tag">{{ tag }}</span>
+                        {% endfor %}
+                    </span>
+                    {% endif %}
+                </div>
+            </article>
+        </a>
+        {% endfor %}
+    </div>
+
+    {# ── Minimal layout ──────────────────────────────────────────── #}
+    {% elif layout == "minimal" %}
+    <ul class="layout-minimal">
+        {% for entry in entries %}
+        <li>
+            {% if entry.date %}
+            <time datetime="{{ entry.iso_date }}">{{ entry.formatted_date }}</time>
+            {% endif %}
+            <a href="{{ collection.url_prefix }}{{ entry.slug }}/">{{ entry.title }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% else %}
+    <p class="empty-state">No entries yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

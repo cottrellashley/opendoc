@@ -1,0 +1,15 @@
+/opendoc
+*.exe
+*.dll
+*.so
+*.dylib
+dist/
+dist-publish/
+.env
+.DS_Store
+*.swp
+*.swo
+*.log
+workspace/
+example/dist/
+example/dist-publish/

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}{{ entry.title }} &mdash; {{ site.name }}{% endblock %}
+
+{% block head %}
+<meta property="og:title" content="{{ entry.title }}">
+{% if entry.description %}
+<meta property="og:description" content="{{ entry.description }}">
+{% endif %}
+{% endblock %}
+
+{% block body %}
+<article class="post-article">
+    <header class="post-hero">
+        <div class="post-hero-inner">
+            {% if entry.tags %}
+            <div class="post-tags">
+                {% for tag in entry.tags %}
+                <a href="{{ collection.url_prefix }}tags/{{ tag|slugify }}/">{{ tag }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <h1 class="post-title">{{ entry.title }}</h1>
+            {% if entry.description %}
+            <p class="post-lead">{{ entry.description }}</p>
+            {% endif %}
+            <div class="post-meta">
+                {% if site.author %}<span class="post-author">{{ site.author }}</span><span class="meta-sep">&middot;</span>{% endif %}
+                {% if entry.date %}
+                <time datetime="{{ entry.iso_date }}">{{ formatted_date }}</time>
+                <span class="meta-sep">&middot;</span>
+                {% endif %}
+                <span class="reading-time">{{ reading_time }} min read</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="post-body tufte-layout">
+        <div class="content">
+            {{ content | safe }}
+        </div>
+    </div>
+
+    {% if toc %}
+    <nav class="scroll-toc" id="scroll-toc">
+        <div class="scroll-toc-inner">
+            <span class="scroll-toc-label">Contents</span>
+            {{ toc | safe }}
+        </div>
+    </nav>
+    {% endif %}
+</article>
+{% endblock %}

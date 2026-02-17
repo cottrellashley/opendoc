@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Archive &mdash; {{ collection.label }} &mdash; {{ site.name }}{% endblock %}
+
+{% block content %}
+<section class="archive">
+    <h1>{{ collection.label }} Archive</h1>
+    {% for year, entries in entries_by_year %}
+    <div class="archive-year">
+        <h2>{{ year }}</h2>
+        <ul>
+            {% for entry in entries %}
+            <li>
+                <time datetime="{{ entry.iso_date }}">{{ entry.formatted_date }}</time>
+                <a href="{{ collection.url_prefix }}{{ entry.slug }}/">{{ entry.title }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+</section>
+{% endblock %}
