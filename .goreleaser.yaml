@@ -59,13 +59,14 @@ changelog:
       - Merge branch
 
 homebrew_casks:
-  - repository:
+  - skip_upload: auto
+    repository:
       owner: cottrellashley
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     directory: Casks
     homepage: "https://github.com/cottrellashley/opendoc"
-    description: "A static site generator with integrated workbench and AI chat"
+    description: "Static site generator with integrated workbench"
     binaries:
       - opendoc
     hooks:
