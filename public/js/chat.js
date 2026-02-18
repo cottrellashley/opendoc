@@ -25,6 +25,7 @@
   var sessionId = null;
   var isStreaming = false;
   var selectedProvider = "anthropic";
+  var selectedModel = "";
   var availableModels = [];
 
   // Snap points as percentages of container width
@@ -198,10 +199,19 @@
       .then(function (data) {
         availableModels = data.models || [];
         var firstAvailable = availableModels.find(function (m) { return m.available; });
-        if (firstAvailable) selectedProvider = firstAvailable.id;
+        if (firstAvailable) {
+          selectedProvider = firstAvailable.id;
+          selectedModel = getDefaultModel(firstAvailable);
+        }
         renderProviderSelector();
       })
       .catch(function () {});
+  }
+
+  function getDefaultModel(provider) {
+    if (!provider || !provider.models) return "";
+    var def = provider.models.find(function (m) { return m["default"]; });
+    return def ? def.id : (provider.models[0] ? provider.models[0].id : "");
   }
 
   function initProviderSelector() {
@@ -219,7 +229,7 @@
     if (!selector) return;
 
     var available = availableModels.filter(function (m) { return m.available; });
-    if (available.length <= 1) {
+    if (available.length === 0) {
       selector.style.display = "none";
       return;
     }
@@ -227,20 +237,43 @@
     selector.style.display = "";
     selector.innerHTML = "";
 
-    available.forEach(function (model) {
+    // Provider buttons
+    var provRow = document.createElement("div");
+    provRow.className = "chat-provider-row";
+
+    available.forEach(function (prov) {
       var btn = document.createElement("button");
-      btn.className = "chat-provider-btn" + (model.id === selectedProvider ? " active" : "");
-      btn.setAttribute("data-provider", model.id);
-      btn.textContent = model.name;
+      btn.className = "chat-provider-btn" + (prov.id === selectedProvider ? " active" : "");
+      btn.setAttribute("data-provider", prov.id);
+      btn.textContent = prov.name;
       btn.addEventListener("click", function () {
-        selectedProvider = model.id;
+        selectedProvider = prov.id;
+        selectedModel = getDefaultModel(prov);
         sessionId = null;
-        selector.querySelectorAll(".chat-provider-btn").forEach(function (b) {
-          b.classList.toggle("active", b.getAttribute("data-provider") === selectedProvider);
-        });
+        renderProviderSelector();
       });
-      selector.appendChild(btn);
+      provRow.appendChild(btn);
     });
+    selector.appendChild(provRow);
+
+    // Model dropdown for the selected provider
+    var currentProv = available.find(function (p) { return p.id === selectedProvider; });
+    if (currentProv && currentProv.models && currentProv.models.length > 1) {
+      var modelSelect = document.createElement("select");
+      modelSelect.className = "chat-model-select";
+      currentProv.models.forEach(function (m) {
+        var opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.name;
+        if (m.id === selectedModel) opt.selected = true;
+        modelSelect.appendChild(opt);
+      });
+      modelSelect.addEventListener("change", function () {
+        selectedModel = modelSelect.value;
+        sessionId = null;
+      });
+      selector.appendChild(modelSelect);
+    }
   }
 
   // ── Send message ────────────────────────────────────────
@@ -282,7 +315,7 @@
     fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text, sessionId: sessionId, provider: selectedProvider }),
+      body: JSON.stringify({ message: text, sessionId: sessionId, provider: selectedProvider, model: selectedModel }),
     })
       .then(function (response) {
         if (!response.ok) {
@@ -767,6 +800,9 @@
     d.textContent = str;
     return d.innerHTML;
   }
+
+  // Expose for cross-module use (e.g. after Copilot auth in app.js)
+  window.refreshChatModels = loadModels;
 
   // ── Init ────────────────────────────────────────────────
 

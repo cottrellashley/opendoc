@@ -477,6 +477,7 @@ window.reloadFrame = function (iframe, overlay) {
         if (data.success) {
           renderCopilotStatus({ configured: true });
           loadAPIKeyStatus();
+          if (window.refreshChatModels) window.refreshChatModels();
         } else {
           var statusEl = document.getElementById("copilot-poll-status");
           statusEl.innerHTML = '<span style="color:var(--danger);">Error: ' + (data.error || "Unknown") + '</span>';

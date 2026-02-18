@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	sidenoteOpenRe  = regexp.MustCompile(`^:{3}\s+(sidenote|widget|deepdive|aside)\s+(.+)$`)
+	sidenoteOpenRe  = regexp.MustCompile(`^:{3}\s*(sidenote|widget|deepdive|aside)\s+(.+)$`)
 	sidenoteCloseRe = regexp.MustCompile(`^:{3}\s*$`)
 )
 

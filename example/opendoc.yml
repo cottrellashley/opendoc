@@ -1,17 +1,29 @@
 site:
-  name: My Site
+  name: "OpenDoc Example"
+  url: "https://example.com"
+  description: "An example site showcasing OpenDoc features"
   author: ""
-  description: ""
-  url: ""
 
 content:
-  dir: content
+  dir: "content"
 
 build:
-  output_dir: dist
+  output_dir: "dist"
 
-theme:
-  name: default
+collections:
+  writing:
+    sort: "newest_first"
+    date_format: "%B %d, %Y"
+    items_per_page: 10
+    tags: true
+    archive: true
+    layout: "timeline"
 
 nav:
   - Home: index.md
+  - Features: features.md
+  - Settings Guide: settings-guide.md
+  - Writing: writing/
+
+theme:
+  name: "default"

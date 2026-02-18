@@ -39,8 +39,11 @@ type copilotTokenResponse struct {
 }
 
 // NewCopilotAdapter creates a new Copilot adapter with the given OAuth token.
-func NewCopilotAdapter(oauthToken string) *CopilotAdapter {
-	model := os.Getenv("COPILOT_MODEL")
+// If model is empty, falls back to COPILOT_MODEL env var or the default.
+func NewCopilotAdapter(oauthToken, model string) *CopilotAdapter {
+	if model == "" {
+		model = os.Getenv("COPILOT_MODEL")
+	}
 	if model == "" {
 		model = copilotDefaultModel
 	}

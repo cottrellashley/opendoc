@@ -47,7 +47,10 @@ var buildCmd = &cobra.Command{
 	Long:  "Build the static site from markdown content. Defaults to the current directory.",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		projectDir := resolveProjectDir(args)
+		projectDir, err := requireProjectDir(args)
+		if err != nil {
+			return err
+		}
 		config, err := core.LoadConfig(projectDir)
 		if err != nil {
 			return err
@@ -77,7 +80,10 @@ var serveCmd = &cobra.Command{
 	Long:  "Build the site and start a local HTTP server. Rebuilds on file changes.",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		projectDir := resolveProjectDir(args)
+		projectDir, err := requireProjectDir(args)
+		if err != nil {
+			return err
+		}
 		config, err := core.LoadConfig(projectDir)
 		if err != nil {
 			return err
@@ -177,7 +183,10 @@ The target repository is resolved from:
   4. Git remote origin`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		projectDir := resolveProjectDir(args)
+		projectDir, err := requireProjectDir(args)
+		if err != nil {
+			return err
+		}
 
 		core.Banner()
 		core.InfoMsg("Starting publish...")
@@ -213,7 +222,10 @@ var statusCmd = &cobra.Command{
 	Long:  "Display project info, build status, and GitHub configuration.",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		projectDir := resolveProjectDir(args)
+		projectDir, err := requireProjectDir(args)
+		if err != nil {
+			return err
+		}
 
 		core.Banner()
 
@@ -377,7 +389,10 @@ var workbenchCmd = &cobra.Command{
 	Long:  "Start the full workbench with editor, preview, chat, and terminal.",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		projectDir := resolveProjectDir(args)
+		projectDir, err := requireProjectDir(args)
+		if err != nil {
+			return err
+		}
 
 		port := 3000
 		if workbenchPort != "" {
@@ -447,6 +462,15 @@ func resolveProjectDir(args []string) string {
 	}
 	abs, _ := filepath.Abs(dir)
 	return abs
+}
+
+func requireProjectDir(args []string) (string, error) {
+	dir := resolveProjectDir(args)
+	configPath := filepath.Join(dir, "opendoc.yml")
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("not an OpenDoc project — no opendoc.yml found in %s\n\nRun 'opendoc new <name>' to create a new project, or cd into an existing one", dir)
+	}
+	return dir, nil
 }
 
 // parseJSON is a small helper to unmarshal JSON into a struct.

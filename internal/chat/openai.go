@@ -19,9 +19,12 @@ type OpenAIAdapter struct {
 	model  string
 }
 
-// NewOpenAIAdapter creates a new OpenAI adapter.
-func NewOpenAIAdapter() *OpenAIAdapter {
-	model := os.Getenv("OPENAI_MODEL")
+// NewOpenAIAdapter creates a new OpenAI adapter. If model is empty, falls back
+// to the OPENAI_MODEL env var or the default.
+func NewOpenAIAdapter(model string) *OpenAIAdapter {
+	if model == "" {
+		model = os.Getenv("OPENAI_MODEL")
+	}
 	if model == "" {
 		model = "gpt-4o"
 	}

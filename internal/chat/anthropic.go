@@ -19,9 +19,12 @@ type AnthropicAdapter struct {
 	model  string
 }
 
-// NewAnthropicAdapter creates a new Anthropic adapter.
-func NewAnthropicAdapter() *AnthropicAdapter {
-	model := os.Getenv("ANTHROPIC_MODEL")
+// NewAnthropicAdapter creates a new Anthropic adapter. If model is empty, falls
+// back to the ANTHROPIC_MODEL env var or the default.
+func NewAnthropicAdapter(model string) *AnthropicAdapter {
+	if model == "" {
+		model = os.Getenv("ANTHROPIC_MODEL")
+	}
 	if model == "" {
 		model = "claude-sonnet-4-20250514"
 	}

@@ -1540,8 +1540,34 @@ body.mode-editor #menu-btn { display: none; }
 
 .chat-provider-selector {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 4px;
   padding: 0 0 8px;
+}
+
+.chat-provider-row {
+  display: flex;
+  gap: 4px;
+}
+
+.chat-model-select {
+  margin-left: auto;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.chat-model-select:hover,
+.chat-model-select:focus {
+  border-color: var(--accent);
 }
 
 .chat-provider-btn {

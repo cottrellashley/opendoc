@@ -128,8 +128,10 @@ func StartWorkbench(cfg WorkbenchConfig) error {
 
 	// ── Start server ────────────────────────────────────
 	addr := fmt.Sprintf(":%d", cfg.Port)
+	url := fmt.Sprintf("http://localhost:%d", cfg.Port)
 	log.Printf("[workbench] OpenDoc Workbench running on port %d", cfg.Port)
 	log.Printf("[workbench] Workspace: %s", workspace)
+	fmt.Printf("\n  → %s\n\n", url)
 
 	return http.ListenAndServe(addr, r)
 }
