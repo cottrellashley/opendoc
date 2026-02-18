@@ -316,6 +316,7 @@ window.reloadFrame = function (iframe, overlay) {
       .then(function (data) {
         renderKeyStatus("anthropic", data.anthropic);
         renderKeyStatus("openai", data.openai);
+        if (data.copilot) renderCopilotStatus(data.copilot);
       })
       .catch(function () {});
   }
@@ -397,6 +398,121 @@ window.reloadFrame = function (iframe, overlay) {
   document.getElementById("toggle-openai-key").addEventListener("click", function () {
     var input = document.getElementById("input-openai-key");
     input.type = input.type === "password" ? "text" : "password";
+  });
+
+  // ── GitHub Copilot OAuth ─────────────────────────────────
+
+  function renderCopilotStatus(info) {
+    var badge = document.getElementById("copilot-badge");
+    var disconnectedEl = document.getElementById("copilot-disconnected");
+    var connectedEl = document.getElementById("copilot-connected");
+    var deviceFlowEl = document.getElementById("copilot-device-flow");
+
+    if (info.configured) {
+      badge.textContent = "Connected";
+      badge.className = "api-key-badge configured";
+      disconnectedEl.style.display = "none";
+      deviceFlowEl.style.display = "none";
+      connectedEl.style.display = "";
+    } else {
+      badge.textContent = "Not connected";
+      badge.className = "api-key-badge not-configured";
+      disconnectedEl.style.display = "";
+      deviceFlowEl.style.display = "none";
+      connectedEl.style.display = "none";
+    }
+  }
+
+  var copilotPollTimer = null;
+
+  function startCopilotAuth() {
+    var btn = document.getElementById("copilot-connect-btn");
+    var deviceFlowEl = document.getElementById("copilot-device-flow");
+    var disconnectedEl = document.getElementById("copilot-disconnected");
+    var codeEl = document.getElementById("copilot-user-code");
+    var statusEl = document.getElementById("copilot-poll-status");
+    var linkEl = document.getElementById("copilot-verify-link");
+
+    btn.disabled = true;
+    btn.textContent = "Starting...";
+
+    fetch("/api/auth/copilot/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) {
+          btn.disabled = false;
+          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65S8.93 17.38 9 18v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg> Sign in with GitHub';
+          alert("Error: " + data.error);
+          return;
+        }
+
+        codeEl.textContent = data.user_code;
+        linkEl.href = data.verification_uri;
+        disconnectedEl.style.display = "none";
+        deviceFlowEl.style.display = "";
+        statusEl.innerHTML = '<div class="copilot-poll-spinner"></div><span>Waiting for authorization...</span>';
+
+        pollCopilotAuth(data.device_code, data.interval || 5);
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65S8.93 17.38 9 18v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg> Sign in with GitHub';
+        alert("Network error: " + err.message);
+      });
+  }
+
+  function pollCopilotAuth(deviceCode, interval) {
+    if (copilotPollTimer) clearTimeout(copilotPollTimer);
+
+    fetch("/api/auth/copilot/poll", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_code: deviceCode, interval: interval }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          renderCopilotStatus({ configured: true });
+          loadAPIKeyStatus();
+        } else {
+          var statusEl = document.getElementById("copilot-poll-status");
+          statusEl.innerHTML = '<span style="color:var(--danger);">Error: ' + (data.error || "Unknown") + '</span>';
+          var disconnectedEl = document.getElementById("copilot-disconnected");
+          var deviceFlowEl = document.getElementById("copilot-device-flow");
+          setTimeout(function () {
+            deviceFlowEl.style.display = "none";
+            disconnectedEl.style.display = "";
+            var btn = document.getElementById("copilot-connect-btn");
+            btn.disabled = false;
+            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65S8.93 17.38 9 18v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg> Sign in with GitHub';
+          }, 3000);
+        }
+      })
+      .catch(function () {});
+  }
+
+  function disconnectCopilot() {
+    fetch("/api/auth/copilot", { method: "DELETE" })
+      .then(function (r) { return r.json(); })
+      .then(function () {
+        renderCopilotStatus({ configured: false });
+        loadAPIKeyStatus();
+      })
+      .catch(function () {});
+  }
+
+  document.getElementById("copilot-connect-btn").addEventListener("click", startCopilotAuth);
+  document.getElementById("copilot-disconnect-btn").addEventListener("click", disconnectCopilot);
+  document.getElementById("copilot-copy-code").addEventListener("click", function () {
+    var code = document.getElementById("copilot-user-code").textContent;
+    navigator.clipboard.writeText(code).then(function () {
+      var btn = document.getElementById("copilot-copy-code");
+      btn.textContent = "Copied!";
+      setTimeout(function () { btn.textContent = "Copy"; }, 2000);
+    });
   });
 
   function startGHLogin() {

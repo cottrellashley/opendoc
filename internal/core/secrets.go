@@ -12,8 +12,9 @@ import (
 // Secrets holds API keys and other sensitive configuration.
 // Stored at ~/.config/opendoc/secrets.yml — never in the project directory.
 type Secrets struct {
-	AnthropicKey string `yaml:"anthropic_api_key"`
-	OpenAIKey    string `yaml:"openai_api_key"`
+	AnthropicKey      string `yaml:"anthropic_api_key"`
+	OpenAIKey         string `yaml:"openai_api_key"`
+	CopilotOAuthToken string `yaml:"copilot_oauth_token"`
 }
 
 // SecretsPath returns the path to the secrets file.
@@ -74,6 +75,11 @@ func ResolveAPIKey(provider string) string {
 			return key
 		}
 		return LoadSecrets().OpenAIKey
+	case "copilot":
+		if key := os.Getenv("GITHUB_COPILOT_TOKEN"); key != "" {
+			return key
+		}
+		return LoadSecrets().CopilotOAuthToken
 	default:
 		return ""
 	}

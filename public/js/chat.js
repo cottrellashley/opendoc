@@ -24,6 +24,8 @@
 
   var sessionId = null;
   var isStreaming = false;
+  var selectedProvider = "anthropic";
+  var availableModels = [];
 
   // Snap points as percentages of container width
   var SNAPS = [0, 25, 50, 100];
@@ -88,6 +90,8 @@
     setChatPct(0);
     renderWelcome();
     initDividerDrag();
+    initProviderSelector();
+    loadModels();
 
     toggleBtn.addEventListener("click", function () {
       setChatPct(chatPct === 0 ? 25 : 0, true);
@@ -186,6 +190,59 @@
     return best;
   }
 
+  // ── Provider selector ───────────────────────────────────
+
+  function loadModels() {
+    fetch("/api/chat/models")
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        availableModels = data.models || [];
+        var firstAvailable = availableModels.find(function (m) { return m.available; });
+        if (firstAvailable) selectedProvider = firstAvailable.id;
+        renderProviderSelector();
+      })
+      .catch(function () {});
+  }
+
+  function initProviderSelector() {
+    var inputArea = comp.querySelector(".chat-input-area");
+    if (!inputArea) return;
+
+    var selector = document.createElement("div");
+    selector.className = "chat-provider-selector";
+    selector.id = "chat-provider-selector";
+    inputArea.insertBefore(selector, inputArea.firstChild);
+  }
+
+  function renderProviderSelector() {
+    var selector = document.getElementById("chat-provider-selector");
+    if (!selector) return;
+
+    var available = availableModels.filter(function (m) { return m.available; });
+    if (available.length <= 1) {
+      selector.style.display = "none";
+      return;
+    }
+
+    selector.style.display = "";
+    selector.innerHTML = "";
+
+    available.forEach(function (model) {
+      var btn = document.createElement("button");
+      btn.className = "chat-provider-btn" + (model.id === selectedProvider ? " active" : "");
+      btn.setAttribute("data-provider", model.id);
+      btn.textContent = model.name;
+      btn.addEventListener("click", function () {
+        selectedProvider = model.id;
+        sessionId = null;
+        selector.querySelectorAll(".chat-provider-btn").forEach(function (b) {
+          b.classList.toggle("active", b.getAttribute("data-provider") === selectedProvider);
+        });
+      });
+      selector.appendChild(btn);
+    });
+  }
+
   // ── Send message ────────────────────────────────────────
 
   function sendMessage() {
@@ -225,7 +282,7 @@
     fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text, sessionId: sessionId, provider: "anthropic" }),
+      body: JSON.stringify({ message: text, sessionId: sessionId, provider: selectedProvider }),
     })
       .then(function (response) {
         if (!response.ok) {

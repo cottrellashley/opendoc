@@ -150,6 +150,11 @@ func RegisterChatRoutes(r chi.Router, workspace string, buildFn BuildFunc) {
 				"name":      "GPT (OpenAI)",
 				"available": core.ResolveAPIKey("openai") != "",
 			},
+			{
+				"id":        "copilot",
+				"name":      "GitHub Copilot",
+				"available": core.ResolveAPIKey("copilot") != "",
+			},
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{"models": models})
@@ -252,7 +257,13 @@ func createAdapter(provider string) (LLMAdapter, error) {
 			return nil, fmt.Errorf("OpenAI API key not configured. Add it in Settings or set OPENAI_API_KEY environment variable.")
 		}
 		return NewOpenAIAdapter(), nil
+	case "copilot":
+		token := core.ResolveAPIKey("copilot")
+		if token == "" {
+			return nil, fmt.Errorf("GitHub Copilot not connected. Sign in via Settings.")
+		}
+		return NewCopilotAdapter(token), nil
 	default:
-		return nil, fmt.Errorf("unknown provider: %s. Use 'anthropic' or 'openai'", provider)
+		return nil, fmt.Errorf("unknown provider: %s. Use 'anthropic', 'openai', or 'copilot'", provider)
 	}
 }

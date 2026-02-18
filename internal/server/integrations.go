@@ -15,6 +15,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/cottrellashley/opendoc/internal/chat"
 	"github.com/cottrellashley/opendoc/internal/core"
 )
 
@@ -149,6 +150,7 @@ func RegisterIntegrationRoutes(r chi.Router, workspace string, bm *BuildManager,
 	r.Get("/api/integrations/api-keys", func(w http.ResponseWriter, r *http.Request) {
 		anthropicKey := core.ResolveAPIKey("anthropic")
 		openaiKey := core.ResolveAPIKey("openai")
+		copilotToken := core.ResolveAPIKey("copilot")
 		writeJSON(w, http.StatusOK, map[string]any{
 			"anthropic": map[string]any{
 				"configured": anthropicKey != "",
@@ -159,6 +161,10 @@ func RegisterIntegrationRoutes(r chi.Router, workspace string, bm *BuildManager,
 				"configured": openaiKey != "",
 				"masked":     core.MaskKey(openaiKey),
 				"source":     keySource("openai"),
+			},
+			"copilot": map[string]any{
+				"configured": copilotToken != "",
+				"source":     keySource("copilot"),
 			},
 		})
 	})
@@ -216,6 +222,75 @@ func RegisterIntegrationRoutes(r chi.Router, workspace string, bm *BuildManager,
 	// GET /api/integrations/gh-login — start gh auth login (SSE stream)
 	r.Get("/api/integrations/gh-login", func(w http.ResponseWriter, r *http.Request) {
 		startGHLogin(w, r)
+	})
+
+	// ── Copilot OAuth device flow ────────────────────────
+
+	// POST /api/auth/copilot/start — begin device code flow
+	r.Post("/api/auth/copilot/start", func(w http.ResponseWriter, r *http.Request) {
+		resp, err := chat.StartCopilotDeviceFlow()
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success":          true,
+			"user_code":        resp.UserCode,
+			"verification_uri": resp.VerificationURI,
+			"device_code":      resp.DeviceCode,
+			"expires_in":       resp.ExpiresIn,
+			"interval":         resp.Interval,
+		})
+	})
+
+	// POST /api/auth/copilot/poll — poll for token after user approves
+	r.Post("/api/auth/copilot/poll", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			DeviceCode string `json:"device_code"`
+			Interval   int    `json:"interval"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request"})
+			return
+		}
+
+		token, err := chat.PollCopilotAccessToken(req.DeviceCode, req.Interval)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		// Save token to secrets
+		secrets := core.LoadSecrets()
+		secrets.CopilotOAuthToken = token
+		if err := core.SaveSecrets(secrets); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{
+				"success": false,
+				"error":   "Failed to save token: " + err.Error(),
+			})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+		})
+	})
+
+	// DELETE /api/auth/copilot — disconnect (remove token)
+	r.Delete("/api/auth/copilot", func(w http.ResponseWriter, r *http.Request) {
+		secrets := core.LoadSecrets()
+		secrets.CopilotOAuthToken = ""
+		if err := core.SaveSecrets(secrets); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"success": true})
 	})
 
 	// POST /api/integrations/publish-deploy — build + deploy to GitHub Pages
@@ -468,6 +543,8 @@ func keySource(provider string) string {
 		envVar = "ANTHROPIC_API_KEY"
 	case "openai":
 		envVar = "OPENAI_API_KEY"
+	case "copilot":
+		envVar = "GITHUB_COPILOT_TOKEN"
 	}
 	if envVar != "" && os.Getenv(envVar) != "" {
 		return "environment"
@@ -480,6 +557,10 @@ func keySource(provider string) string {
 		}
 	case "openai":
 		if secrets.OpenAIKey != "" {
+			return "settings"
+		}
+	case "copilot":
+		if secrets.CopilotOAuthToken != "" {
 			return "settings"
 		}
 	}
