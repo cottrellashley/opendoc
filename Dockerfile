@@ -11,7 +11,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /opendoc ./cmd/opendoc
 
 # ── Stage 2: Runtime image ───────────────────────────────────
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8
